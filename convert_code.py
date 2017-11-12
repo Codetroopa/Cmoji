@@ -1,3 +1,5 @@
+import lark
+
 def safe_convert(convert_fn, children, index, name, *args):
 	if (index >= len(children)):
 		return
@@ -6,6 +8,20 @@ def safe_convert(convert_fn, children, index, name, *args):
 		if children[index].data == name:
 			convert_fn(children[index], *args)
 
+def get_type_from_emoji(emoji):
+	emoji_dict = {
+		"__int__": "int",
+		"__bool__": "bool",
+		"__char__": "char",
+		"__deref__": "*",
+		"__true__": "true",
+		"__false__": "false"
+	}
+
+	if emoji in emoji_dict:
+		return emoji_dict[emoji]
+
+	return emoji
 
 def concatenate_leaves(tree):
 	s = ""
@@ -15,39 +31,74 @@ def concatenate_leaves(tree):
 		top = stack.pop()
 
 		if type(top) is lark.lexer.Token:
-			s += top.value
+			s += get_type_from_emoji(top.value)
 		else:
 			stack += top.children[::-1]
 
 	return s
 
-def get_type_from_emoji(emoji):
-	return "int"
+
+
+def convert_test(tree):
+	convert_expr(tree.children[0])
+	if tree.data == 'test0':
+		print(" == ", end="")
+	elif tree.data == 'test1':
+		print(" != ", end="")
+	elif tree.data == 'test2':
+		print(" < ", end="")
+	elif tree.data == 'test3':
+		print(" <= ", end="")
+	elif tree.data == 'test4':
+		print(" >= ", end="")
+	elif tree.data == 'test5':
+		print(" > ", end="")
+
+	convert_expr(tree.children[2])
 
 def convert_type(tree):
-	type = get_type_from_emoji(concatenate_leaves(tree.children[0]))
+	type = (concatenate_leaves(tree.children[0]))
 	print(type, end="")
-	print(concatenate_leaves(tree.children[1]), end="")
+	if len(tree.children) > 1:
+		print(concatenate_leaves(tree.children[1]), end="")
 
 def convert_dcl(tree, indent):
 	print(indent, end="")
 	convert_type(tree.children[0])
 	name = concatenate_leaves(tree.children[1])
-	print(" " + name, end="")t
+	print(" " + name, end="")
 
 def convert_dcls(tree, indent):
-	if tree.data == 'decls1':
-		convert_dcls(tree.children[0], indent)
-		convert_dcl(tree.children[1], indent)
-		print(" = %s;" % concatenate_leaves(tree.children[4]))
-	elif tree.data == 'decls2':
-		convert_dcls(tree.children[0], indent)
-		convert_dcl(tree.children[1], indent)
+	if tree.data == 'dcls1':
+		if type(tree.children[0]) is lark.tree.Tree and tree.children[0].data[:4] == 'dcls':
+			convert_dcls(tree.children[0], indent)
+			convert_dcl(tree.children[2], indent)
+			print(" = %s;" % concatenate_leaves(tree.children[4]))
+		else:
+			convert_dcl(tree.children[1], indent)
+			print(" = %s;" % concatenate_leaves(tree.children[3]))
+	elif tree.data == 'dcls2':
+		if type(tree.children[0]) is lark.tree.Tree and tree.children[0].data[:4] == 'dcls':
+			convert_dcls(tree.children[0], indent)
+			convert_dcl(tree.children[2], indent)
+		else:
+			convert_dcl(tree.children[1], indent)
 		print(" = NULL;")
+	elif tree.data == 'dcls3':
+		if type(tree.children[0]) is lark.tree.Tree and tree.children[0].data[:4] == 'dcls':
+			convert_dcls(tree.children[0], indent)
+			convert_dcl(tree.children[2], indent)
+			print(" = '%s';" % concatenate_leaves(tree.children[4]))
+		else:
+			convert_dcl(tree.children[1], indent)
+			print(" = '%s';" % concatenate_leaves(tree.children[3]))
 
 def convert_paramlist(tree):
 	if tree.data == "paramlist0":
-		convert_dcl()
+		convert_dcl(tree.children[0], "")
+	elif tree.data == 'paramlist1':
+		convert_dcl(tree.children[0], "")
+		convert_paramlist(tree.children[2])
 
 def convert_params(tree):
 	if tree.data == 'params1':
@@ -141,36 +192,52 @@ def convert_statement(tree, indent):
 		print(indent + "if (", end="")
 		convert_test(tree.children[1])
 		print(") {")
-		convert_statements(tree.children[5], indent+'\t')
+		if type(tree.children[5]) is lark.tree.Tree and tree.children[5].data[:10] == 'statements':
+			convert_statements(tree.children[5], indent+'\t')
 		print(indent + "}")
+		print(indent + "else {")
+		if len(tree.children) > 9 and type(tree.children[9]) is lark.tree.Tree and tree.children[9].data[:10] == 'statements':
+			convert_statements(tree.children[9], indent+'\t')
+		elif type(tree.children[8]) is lark.tree.Tree and tree.children[8].data[:10] == 'statements':
+			convert_statements(tree.children[8], indent+'\t')
+		print(indent + "}")
+
 	elif tree.data == 'statement2':
 		print(indent+"while (", end="")
 		convert_test(tree.children[1])
 		print(") {")
-		convert_statements(tree.children[6], indent+'\t')
+		if type(tree.children[6]) is lark.tree.Tree and tree.children[6].data[:10] == 'statements':
+			convert_statements(tree.children[6], indent+'\t')
 		print(indent+"}")
 	elif tree.data == 'statement3':
-		print("cout << ", end="")
+		print(indent + "cout << ", end="")
 		convert_expr(tree.children[2])
-		print(";")
+		print(" << endl;")
 	elif tree.data == 'statement4':
 		print(indent + "delete[] ", end="")
 		convert_expr(tree.children[3])
+		print(";")
 
 
 def convert_statements(tree, indent):
 	if tree.data == 'statements1':
-		convert_statements(tree.children[0])
-		convert_statement(tree.children[1])
+		if len(tree.children) == 1:
+			convert_statement(tree.children[0], indent)
+		else:
+			convert_statements(tree.children[0], indent)
+			convert_statement(tree.children[1], indent)
 
-def convert_procedure(proc_tree):
-	convert_type(proc_tree.children[0])
+def convert_procedure(tree):
+	convert_type(tree.children[0])
 
-	proc_name = concatenate_leaves(proc_tree.children[1])
+	proc_name = concatenate_leaves(tree.children[1])
 
 	print(" " + proc_name + "(", end="")
 
-	convert_params(proc_tree.children[3])
+	for c in tree.children:
+		if type(c) is lark.tree.Tree and c.data[:6] == 'params':
+			convert_params(tree.children[3])
+			break
 
 	print(") {")
 
@@ -186,9 +253,9 @@ def convert_procedure(proc_tree):
 
 	print("\treturn ", end="")
 
-	convert_expr(proc_tree.children[9])
+	convert_expr(tree.children[-3])
 
-	print("")
+	print(";")
 
 	print("}")
 
@@ -198,17 +265,35 @@ def convert_main(tree):
 
 	print("int main(int %s, char** %s) {" % (p1, p2))
 
-	safe_convert(convert_dcls, tree.children, )
+	for c in tree.children:
+		if type(c) is lark.tree.Tree and c.data[:4] == 'dcls':
+			convert_dcls(c, '\t')
+			break
 
+	for c in tree.children:
+		if type(c) is lark.tree.Tree and c.data[:9] == 'statement':
+			convert_statements(c, '\t')
+			break
+
+	print("\treturn ", end="")
+
+	convert_expr(tree.children[-3])
+
+	print(";")
+
+	print("}")
+
+def convert_start(tree):
+	if tree.data == 'start0':
+		convert_procedure(tree.children[0])
+		convert_start(tree.children[1])
+	elif tree.data == 'start1':
+		convert_main(tree.children[0])
 
 def convert(tree):
 	print("#include <iostream>")
 	print("using namespace std;")
 
-	if tree.data == 'procedures0':
-		convert_procedure(tree.children[0])
-		convert(tree.children[1])
-	elif tree.data == 'procedures1':
-		convert_main(tree.children[0])
-	elif tree
+	if tree.data[:5] == 'start':
+		convert_start(tree)
 
