@@ -104,14 +104,24 @@ emoji_table = {
 
 }
 
-def parse_line(line):
-    pass
+# Returns a parse-tree from a Cmoji file
+def parse_file(file_name):
+    larker = Lark(RULES)
+    with open(filename, 'r') as f:
+        
+    try:
+        tree = larker.parse()
+    except Exception:
+        print('Needs more emoji\'s, mate')
+        raise Exception
+    return tree
 
-l = Lark(RULES)
-print(l)
-# INT HOME CLAP INT WORD CLAP CHAR DEREF DEREF WORD CLAP LBRACE dcls statements RETURN expr SEMI RBRACE
-# dcls BABY dcl BECOMES NUM SEMI
-# DELETE LBRACK RBRACK expr SEMI
-tree = l.parse("__int__ __home__ __clap__ __int__ test __clap__ __char__ __deref__ __deref__ abc __clap__ { __baby__ __bool__ abc = 69 __semi__ __return__ 0 __semi__ }")
-print(tree)
-print(tree.pretty())
+test_case = '''
+__int__ __home__ __clap__ __int__ test __clap__ __char__ __deref__ __deref__ abc __clap__ 
+{ 
+    __baby__ __bool__ abc = 69 __semi__ 
+    __delete__ [] 6 __plus__ 9 __semi__
+    __return__ 0 __semi__ 
+}
+'''
+
