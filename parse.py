@@ -59,7 +59,7 @@ lvalue: WORD -> lvalue0
     | STAR factor -> lvalue1
     | LPAREN lvalue RPAREN -> lvalue2
 NUM: /[0-9]+/
-LONG: /[0-9]+/
+LONG: "__long__"
 CHARACTER: /[a-zA-Z]/
 CHAR: "__char__"
 LPAREN: "("
