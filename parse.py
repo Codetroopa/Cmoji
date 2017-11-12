@@ -1,24 +1,25 @@
-from lark import lark
+from lark import Lark
 
 RULES = '''
-procedures: procedure procedures -> procedures0 
-    | main -> procedures1
+start: procedure start -> start0 
+    | main -> start1
 procedure: type WORD CLAP params CLAP LBRACE dcls statements RETURN expr SEMI RBRACE 
 main: INT HOME CLAP INT CLAP CHAR DEREF DEREF CLAP LBRACE dcls statements RETURN expr SEMI RBRACE
 params: "" -> params0 
     | paramlist -> params1
 paramlist: dcl -> paramlist0 
     | dcl CLAP paramlist -> paramlist1
-solidType: INT -> solidType0 
-    | LONG -> solidType1
-    | CHAR -> solidType2
-    | BOOL -> solidType3
-type: solidType stars -> type0
-stars: "" -> stars0 | 
-       DEREF stars -> stars1
+solidtype: INT -> solidtype0 
+    | LONG -> solidtype1
+    | CHAR -> solidtype2
+    | BOOL -> solidtype3
+type: solidtype stars
+stars: "" -> stars0 
+    | DEREF stars -> stars1
 dcls: "" -> dcls0
     | dcls BABY dcl BECOMES NUM SEMI -> dcls1
     | dcls BABY dcl BECOMES NULL SEMI -> dcls2
+    | dcls BABY dcl BECOMES "\'" CHARACTER "\'" -> dcls3
 dcl: type WORD
 statements: "" -> statements0
     | statements statement -> statements1
@@ -44,20 +45,60 @@ factor: WORD -> factor0
     | NUM -> factor1
     | NULL -> factor2
     | LPAREN expr RPAREN -> factor3
-    | AMP lvalue -> factor4
-    | STAR factor -> factor5
-    | NEW INT LBRACK expr RBRACK -> factor6
+    | REF lvalue -> factor4
+    | DEREF factor -> factor5
+    | NEW type LBRACK expr RBRACK -> factor6
     | CALL WORD LPAREN RPAREN -> factor7
     | CALL WORD LPAREN arglist RPAREN -> factor8
+    | CHARACTER -> factor9
 arglist: expr -> arglist0
     | expr CLAP arglist -> arglist1
 lvalue: WORD -> lvalue0
     | STAR factor -> lvalue1
     | LPAREN lvalue RPAREN -> lvalue2
+NUM: /[0-9]+/
+LONG: /[0-9]+/
+CHARACTER: /^[a-zA-Z]$/
+CHAR: "__char__"
+LPAREN: "("
+RPAREN: ")"
+LBRACE: "{"
+RBRACE: "}"
+RETURN: "__return__"
+HMMM: "__hmmm__"
+ELSE: "__else__"
+WHILE: "__while__"
+PRINTLN: "__println__"
+HOME: "__home__"
+BECOMES: "="
+INT: "__int__"
+TRUE: "__true__"
+FALSE: "__false__"
+BOOL: "__bool__"
+EQ: "=="
+NE: "!="
+LT: "<"
+GT: ">"
+LE: "<="
+GE: ">="
+PLUS: "__plus__"
+MINUS: "__minus__"
+STAR: "__star__"
+SLASH: "__slash__"
+PCT: "%"
+CALL: "__call__"
+CLAP: "__clap__"
+BABY: "__baby__"
+SEMI: "__semi__"
+NEW: "__new__"
+DELETE: "__delete__"
+REF: "__ref__"
+DEREF: "__deref__"
+LBRACK: "["
+RBRACK: "]"
+NULL: "NULL"
+%import common.WORD
 '''
-
-
-
 emoji_table = {
 
 }
@@ -65,7 +106,6 @@ emoji_table = {
 def parse_line(line):
     pass
 
-l = Lark(RULES + TERMINALS)
-print(l.parse('''
-int home ()
-''')
+l = Lark(RULES)
+print(l)
+print(l.parse("__int__ __home__ __clap__ __int__ __clap__ __char__ __deref__ __deref__ __clap__ { __baby__ __bool__ abc = 69 __semi__ __return__ 0 __semi__ }"))
