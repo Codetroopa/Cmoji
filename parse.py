@@ -28,7 +28,7 @@ statements: "" -> statements0
 statement: lvalue BECOMES expr SEMI -> statement0
     | LPAREN test RPAREN HMMM LBRACE statements? RBRACE ELSE LBRACE statements? RBRACE -> statement1
     | LPAREN test RPAREN HMMM WHILE LBRACE statements? RBRACE -> statement2
-    | PRINTLN LPAREN expr RPAREN SEMI -> statement3
+    | PRINTLN CLAP expr CLAP SEMI -> statement3
     | DELETE LBRACK RBRACK expr SEMI -> statement4
 test: expr EQ expr -> test0
     | expr NE expr -> test1
