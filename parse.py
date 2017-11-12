@@ -3,8 +3,8 @@ from lark import Lark
 RULES = '''
 start: procedure start -> start0 
     | main -> start1
-procedure: type WORD CLAP params CLAP LBRACE dcls statements RETURN expr SEMI RBRACE 
-main: INT HOME CLAP INT CLAP CHAR DEREF DEREF CLAP LBRACE dcls statements RETURN expr SEMI RBRACE
+procedure: type WORD CLAP params? CLAP LBRACE dcls? statements? RETURN expr SEMI RBRACE 
+main: INT HOME CLAP INT WORD CLAP CHAR DEREF DEREF WORD CLAP LBRACE dcls? statements? RETURN expr SEMI RBRACE
 params: "" -> params0 
     | paramlist -> params1
 paramlist: dcl -> paramlist0 
@@ -13,19 +13,19 @@ solidtype: INT -> solidtype0
     | LONG -> solidtype1
     | CHAR -> solidtype2
     | BOOL -> solidtype3
-type: solidtype stars
+type: solidtype stars?
 stars: "" -> stars0 
-    | DEREF stars -> stars1
+    | DEREF stars? -> stars1
 dcls: "" -> dcls0
-    | dcls BABY dcl BECOMES NUM SEMI -> dcls1
-    | dcls BABY dcl BECOMES NULL SEMI -> dcls2
-    | dcls BABY dcl BECOMES "\'" CHARACTER "\'" -> dcls3
+    | dcls? BABY dcl BECOMES NUM SEMI -> dcls1
+    | dcls? BABY dcl BECOMES NULL SEMI -> dcls2
+    | dcls? BABY dcl BECOMES "\'" CHARACTER "\'" -> dcls3
 dcl: type WORD
 statements: "" -> statements0
-    | statements statement -> statements1
+    | statements? statement -> statements1
 statement: lvalue BECOMES expr SEMI -> statement0
-    | LPAREN test RPAREN HMMM LBRACE statements RBRACE ELSE LBRACE statements RBRACE -> statement1
-    | LPAREN test RPAREN HMMM WHILE LBRACE statements RBRACE -> statement2
+    | LPAREN test RPAREN HMMM LBRACE statements? RBRACE ELSE LBRACE statements? RBRACE -> statement1
+    | LPAREN test RPAREN HMMM WHILE LBRACE statements? RBRACE -> statement2
     | PRINTLN LPAREN expr RPAREN SEMI -> statement3
     | DELETE LBRACK RBRACK expr SEMI -> statement4
 test: expr EQ expr -> test0
@@ -98,6 +98,7 @@ LBRACK: "["
 RBRACK: "]"
 NULL: "NULL"
 %import common.WORD
+%ignore " "
 '''
 emoji_table = {
 
@@ -108,4 +109,9 @@ def parse_line(line):
 
 l = Lark(RULES)
 print(l)
-print(l.parse("__int__ __home__ __clap__ __int__ __clap__ __char__ __deref__ __deref__ __clap__ { __baby__ __bool__ abc = 69 __semi__ __return__ 0 __semi__ }"))
+# INT HOME CLAP INT WORD CLAP CHAR DEREF DEREF WORD CLAP LBRACE dcls statements RETURN expr SEMI RBRACE
+# dcls BABY dcl BECOMES NUM SEMI
+# DELETE LBRACK RBRACK expr SEMI
+tree = l.parse("__int__ __home__ __clap__ __int__ test __clap__ __char__ __deref__ __deref__ abc __clap__ { __baby__ __bool__ abc = 69 __semi__ __return__ 0 __semi__ }")
+print(tree)
+print(tree.pretty())
